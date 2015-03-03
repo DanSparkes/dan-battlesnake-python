@@ -34,7 +34,7 @@ def move():
         })
     else:
         return json.dumps({
-            'move': 'right',
+            'move': 'down',
             'taunt': 'ArGG!'
         })
 
