@@ -2,6 +2,24 @@ import bottle
 import json
 import math
 
+def moveRight():
+    return json.dumps({
+        'move': 'right',
+        'taunt': 'Bollocks'
+    })
+def moveDown():
+    return json.dumps({
+        'move': 'down'
+    })
+def moveUp():
+    return json.dumps({
+        'move': 'up'
+    })
+def moveLeft():
+    return json.dumps({
+        'move': 'left'
+    })
+
 class FoodDistance:
    'Common base class food and it\s distance'
 
@@ -34,25 +52,110 @@ def getClosestFood(snakeHead, food):
     foodList.sort(key=lambda x: x.distance, reverse=False)
     return foodList[0].food
 
-
-def moveToFood(snakeHead, food):
-    if(snakeHead[0] < food[0]):
-        return json.dumps({
-            'move': 'right',
-            'taunt': 'Bollocks'
-        })
-    elif(snakeHead[0] > food[0]):
-        return json.dumps({
-            'move': 'left'
-        })
-    elif(snakeHead[1] < food[1]):
-         return json.dumps({
-            'move': 'down'
-        })
+def checkIfSafe(snakeHead, direction, board):   
+    if(direction == 'right'):
+        if(snakeHead[0] + 1 == getBoarders(board)['width']):
+            return False
+        state = board[snakeHead[0]+1][snakeHead[1]]['state']
+    if(direction == 'left'):
+        state = board[snakeHead[0]-1][snakeHead[1]]['state']
+    if(direction == 'up'):
+        state = board[snakeHead[0]][snakeHead[1]-1]['state']
+    if(direction == 'down'):
+        if(snakeHead[1] + 1 == getBoarders(board)['height']):
+            return False
+        state = board[snakeHead[0]][snakeHead[1]+1]['state']
+    if(state == 'food' or state == 'empty'):
+        return True
     else:
-         return json.dumps({
-            'move': 'up'
-        })
+        return False
+
+def nextBestMove(snakeHead, prevDirection, board):
+    left = 0
+    right = 0
+    up = 0
+    down = 0
+    snakex = snakeHead[0]
+    snakey = snakeHead[1]
+    if(prevDirection != 'left'):
+        while snakex >= 0:
+            snakex -= 1
+            if(board[snakex][snakey]['state'] == 'food' or board[snakex][snakey]['state'] == 'empty'):
+                left += 1
+            else:
+                break
+        snakex = snakeHead[0]
+    if(prevDirection != 'right'):
+        if(snakeHead[0] + 1 != getBoarders(board)['width']):
+            while snakex < (getBoarders(board)['width'] - 1):
+                snakex += 1
+                if(board[snakex][snakey]['state'] == 'food' or board[snakex][snakey]['state'] == 'empty'):
+                    right += 1
+                else:
+                    break
+            snakex = snakeHead[0]
+    if(prevDirection != 'up'):
+        while snakey >= 0:
+            snakey -= 1
+            if(board[snakex][snakey]['state'] == 'food' or board[snakex][snakey]['state'] == 'empty'):
+                up += 1
+            else:
+                break
+        snakey = snakeHead[1]
+    if(prevDirection != 'down'):
+        if(snakeHead[1] + 1 != getBoarders(board)['height']):
+            while snakey < (getBoarders(board)['height'] - 1):
+                snakey += 1
+                if(board[snakex][snakey]['state'] == 'food' or board[snakex][snakey]['state'] == 'empty'):
+                    down += 1
+                else:
+                    break
+    moveList = [left, right, up, down]
+    moveList.sort()
+    if(moveList[3] == up):
+        if(checkIfSafe(snakeHead, 'up', board)):
+            return moveUp()
+        else:
+            return nextBestMove(snakeHead, 'up', board)
+    elif(moveList[3] == down):
+        if(checkIfSafe(snakeHead, 'down', board)):
+            return moveDown()
+        else:
+            return nextBestMove(snakeHead, 'down', board)
+    elif(moveList[3] == right):
+        if(checkIfSafe(snakeHead, 'right', board)):
+            return moveRight()
+        else:
+            return nextBestMove(snakeHead, 'right', board)
+    elif(moveList[3] == left):
+        if(checkIfSafe(snakeHead, 'left', board)):
+            return moveLeft()
+        else:
+            return nextBestMove(snakeHead, 'left', board)
+    
+    
+def moveToFood(snakeHead, food, board):
+    if(snakeHead[0] < food[0]):
+        if(checkIfSafe(snakeHead, 'right', board)):
+            return moveRight()
+        else:
+            return nextBestMove(snakeHead, 'right', board) 
+    elif(snakeHead[0] > food[0]):
+        if(checkIfSafe(snakeHead, 'left', board)):
+            return moveLeft()
+        else:
+            return nextBestMove(snakeHead, 'left', board)
+    elif(snakeHead[1] < food[1]):
+        if(checkIfSafe(snakeHead, 'down', board)):
+            return moveDown()
+        else:
+            return nextBestMove(snakeHead, 'down', board)
+    else:
+        if(checkIfSafe(snakeHead, 'up', board)):
+            return moveUp()
+        else:
+            return nextBestMove(snakeHead, 'up', board)
+
 @bottle.get('/')
 def index():
     return """
@@ -77,22 +180,8 @@ def start():
 @bottle.post('/move')
 def move():
     data = bottle.request.json
-
-    return moveToFood(getSnakeHead(), getClosestFood(getSnakeHead(), data["food"]))
+    return moveToFood(getSnakeHead(), getClosestFood(getSnakeHead(), data["food"]), data["board"])
     
-    print "x = " + str(getSnakeHead()[0])
-    print "y = " + str(getSnakeHead()[1])
-    print "board width = " + str(getBoarders(data['board'])['width'])
-    print "board height = " + str(getBoarders(data['board'])['height'])
-    #return json.dumps({
-    #    'move': 'down',
-    #    'taunt': data
-    #})
-    #else:
-       # return json.dumps({
-        #    'move': 'down',
-         #   'taunt': 'ArGG!'
-        #})
 
 
 
