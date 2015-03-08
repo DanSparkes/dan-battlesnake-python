@@ -2,22 +2,25 @@ import bottle
 import json
 import math
 
-def moveRight():
+def moveRight(taunt):
     return json.dumps({
         'move': 'right',
-        'taunt': 'Bollocks'
+        'taunt': taunt
     })
-def moveDown():
+def moveDown(taunt):
     return json.dumps({
-        'move': 'down'
+        'move': 'down',
+        'taunt': taunt
     })
-def moveUp():
+def moveUp(taunt):
     return json.dumps({
-        'move': 'up'
+        'move': 'up',
+        'taunt': taunt
     })
-def moveLeft():
+def moveLeft(taunt):
     return json.dumps({
-        'move': 'left'
+        'move': 'left',
+        'taunt': taunt
     })
 
 class FoodDistance:
@@ -57,18 +60,61 @@ def checkIfSafe(snakeHead, direction, board):
         if(snakeHead[0] + 1 == getBoarders(board)['width']):
             return False
         state = board[snakeHead[0]+1][snakeHead[1]]['state']
+        if(state == 'food' or state == 'empty'):
+            if(snakeHead[0] + 2 < getBoarders(board)['width']):
+                if(board[snakeHead[0]+2][snakeHead[1]]['state'] == 'head'):
+                    return False
+            if(snakeHead[0] + 1 < (getBoarders(board)['width']) and (snakeHead[1]+1 < (getBoarders(board)['height']))):
+                if(board[snakeHead[0]+1][snakeHead[1] + 1]['state'] == 'head'):
+                    return False
+            if(snakeHead[0] + 1 < (getBoarders(board)['width'])):
+                if(board[snakeHead[0]+1][snakeHead[1] - 1]['state'] == 'head'):
+                    return False
+                else:
+                    return True
+        else:
+            return False
     if(direction == 'left'):
         state = board[snakeHead[0]-1][snakeHead[1]]['state']
+        if(state == 'food' or state == 'empty'):
+            if(snakeHead[1]+1 < (getBoarders(board)['height'])):
+                if(board[snakeHead[0]-1][snakeHead[1] + 1]['state'] == 'head'):
+                    return False
+            if(board[snakeHead[0]-2][snakeHead[1]]['state'] == 'head' or board[snakeHead[0]-1][snakeHead[1] - 1]['state'] == 'head'):
+                return False
+            else:
+                return True
+        else:
+            return False
     if(direction == 'up'):
         state = board[snakeHead[0]][snakeHead[1]-1]['state']
+        if(state == 'food' or state == 'empty'):
+            if(snakeHead[0] + 1 < getBoarders(board)['width']):
+                if(board[snakeHead[0] + 1][snakeHead[1]-1]['state'] == 'head'):
+                    return False
+            if(board[snakeHead[0]][snakeHead[1]-2]['state'] == 'head' or board[snakeHead[0] - 1][snakeHead[1]-1]['state'] == 'head'):
+                return False
+            else:
+                return True
+        else:
+            return False
     if(direction == 'down'):
         if(snakeHead[1] + 1 == getBoarders(board)['height']):
             return False
         state = board[snakeHead[0]][snakeHead[1]+1]['state']
-    if(state == 'food' or state == 'empty'):
-        return True
-    else:
-        return False
+        if(state == 'food' or state == 'empty'):
+            if(snakeHead[1] + 2 < getBoarders(board)['height']):
+                if(board[snakeHead[0]][snakeHead[1]+2]['state'] ==  'head'):
+                    return False
+            if(snakeHead[0] + 1 < (getBoarders(board)['width']) and (snakeHead[1]+1 < (getBoarders(board)['height']))):
+                if(board[snakeHead[0] + 1][snakeHead[1]+1]['state'] == 'head'):
+                    return False
+            if(board[snakeHead[0] - 1][snakeHead[1]+1]['state'] == 'head'):
+                return False
+            else:
+                return True
+        else:
+            return False
 
 def nextBestMove(snakeHead, prevDirection, board):
     left = 0
@@ -114,22 +160,22 @@ def nextBestMove(snakeHead, prevDirection, board):
     moveList.sort()
     if(moveList[3] == up):
         if(checkIfSafe(snakeHead, 'up', board)):
-            return moveUp()
+            return moveUp('Get out the way')
         else:
             return nextBestMove(snakeHead, 'up', board)
     elif(moveList[3] == down):
         if(checkIfSafe(snakeHead, 'down', board)):
-            return moveDown()
+            return moveDown('Shift it!')
         else:
             return nextBestMove(snakeHead, 'down', board)
     elif(moveList[3] == right):
         if(checkIfSafe(snakeHead, 'right', board)):
-            return moveRight()
+            return moveRight('Move!!')
         else:
             return nextBestMove(snakeHead, 'right', board)
     elif(moveList[3] == left):
         if(checkIfSafe(snakeHead, 'left', board)):
-            return moveLeft()
+            return moveLeft('You are in the way!')
         else:
             return nextBestMove(snakeHead, 'left', board)
     
@@ -137,22 +183,22 @@ def nextBestMove(snakeHead, prevDirection, board):
 def moveToFood(snakeHead, food, board):
     if(snakeHead[0] < food[0]):
         if(checkIfSafe(snakeHead, 'right', board)):
-            return moveRight()
+            return moveRight('So hungry')
         else:
             return nextBestMove(snakeHead, 'right', board) 
     elif(snakeHead[0] > food[0]):
         if(checkIfSafe(snakeHead, 'left', board)):
-            return moveLeft()
+            return moveLeft('Must eat soon...')
         else:
             return nextBestMove(snakeHead, 'left', board)
     elif(snakeHead[1] < food[1]):
         if(checkIfSafe(snakeHead, 'down', board)):
-            return moveDown()
+            return moveDown('mmmm yellow balls')
         else:
             return nextBestMove(snakeHead, 'down', board)
     else:
         if(checkIfSafe(snakeHead, 'up', board)):
-            return moveUp()
+            return moveUp('On my way')
         else:
             return nextBestMove(snakeHead, 'up', board)
 
@@ -172,7 +218,7 @@ def start():
     return json.dumps({
         'name': 'Dan\'s Snake',
         'color': '#000000',
-        'head_url': 'http://battlesnake-python.herokuapp.com',
+        'head_url': 'http://www.spraypaintstencils.com/a-zlistings/bat-thumb.gif',
         'taunt': 'ArGG!'
     })
 
